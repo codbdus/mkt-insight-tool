@@ -84,16 +84,16 @@
                     <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
                         <i data-lucide="bar-chart-3" class="w-5 h-5 text-indigo-500"></i> 다차원 보고서 그래프화
                     </h2>
-                    <p class="text-xs text-slate-400 mt-1">네이버 다차원 보고서(A열 3행 시작) 파일을 넣으면 캠페인별 노출/클릭을 자동 시각화합니다.</p>
+                    <p class="text-xs text-slate-400 mt-1">네이버 다차원 보고서 파일을 분석하여 노출/클릭 및 ROAS 성과를 더블 시각화합니다.</p>
                 </div>
                 <div class="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-200 self-start sm:self-auto">
-                    <button onclick="downloadChartPng()" class="px-3 py-1 bg-slate-800 text-white text-xs font-bold rounded-lg hover:bg-slate-700 transition-colors cursor-pointer flex items-center gap-1">
-                        <i data-lucide="download" class="w-3 h-3"></i> PNG 저장
+                    <button onclick="downloadAllCharts()" class="px-3 py-1 bg-slate-800 text-white text-xs font-bold rounded-lg hover:bg-slate-700 transition-colors cursor-pointer flex items-center gap-1">
+                        <i data-lucide="download" class="w-3 h-3"></i> 전체 그래프 저장
                     </button>
                 </div>
             </div>
 
-            <div id="dropZone" class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center bg-slate-200/10 hover:bg-slate-200/30 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[220px]">
+            <div id="dropZone" class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center bg-slate-200/10 hover:bg-slate-200/30 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[200px]">
                 <div id="dropZoneContent" class="flex flex-col items-center justify-center">
                     <div class="w-12 h-12 bg-white rounded-xl shadow-xs border border-slate-100 flex items-center justify-center mb-3 text-slate-700">
                         <i data-lucide="file-spreadsheet" class="w-6 h-6 text-emerald-600"></i>
@@ -101,12 +101,28 @@
                     <p class="text-xs font-medium text-slate-500 underline decoration-slate-400 underline-offset-4">
                         보고서 파일(CSV, XLSX) 업로드 또는 드래그앤드롭
                     </p>
-                    <p class="text-[11px] text-slate-400 mt-1">캠페인별 성과 실시간 데이터 파싱</p>
+                    <p class="text-[11px] text-slate-400 mt-1">캠페인별 성과 및 ROAS 실시간 파싱</p>
                 </div>
                 <input type="file" id="fileInput" class="hidden" accept=".csv, .xlsx, .xls">
                 
-                <div id="chartContainer" class="w-full hidden mt-4">
-                    <canvas id="mktChart" class="max-h-[350px] w-full"></canvas>
+                <div id="chartsWrapper" class="w-full hidden space-y-8 mt-2">
+                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                        <h3 class="text-xs font-bold text-slate-500 text-left mb-2 flex items-center gap-1">
+                            <span class="w-1.5 h-3 bg-indigo-500 rounded-xs"></span> 캠페인별 기본 성과 (노출수 & 클릭수)
+                        </h3>
+                        <div class="max-h-[260px] relative w-full">
+                            <canvas id="mktPerformanceChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                        <h3 class="text-xs font-bold text-slate-500 text-left mb-2 flex items-center gap-1">
+                            <span class="w-1.5 h-3 bg-emerald-500 rounded-xs"></span> 캠페인별 실시간 ROAS (%) 분석
+                        </h3>
+                        <div class="max-h-[240px] relative w-full">
+                            <canvas id="mktRoasChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -115,9 +131,10 @@
 
     <script>
         lucide.createIcons();
-        let myChart = null; // 차트 객체 전역 관리
+        let performanceChart = null;
+        let roasChart = null;
 
-        // 1. 실시간 트렌드 체크 이동 로직
+        // 1. 실시간 트렌드 검색
         function searchTrend(platform) {
             const keyword = document.getElementById('trendKeyword').value.trim();
             if (!keyword) {
@@ -127,23 +144,15 @@
             
             let url = '';
             switch(platform) {
-                case 'blackkiwi':
-                    url = `https://blackkiwi.net/search?keyword=${encodeURIComponent(keyword)}`;
-                    break;
-                case 'naver':
-                    url = `https://search.naver.com/search.naver?query=${encodeURIComponent(keyword)}`;
-                    break;
-                case 'youtube':
-                    url = `https://www.youtube.com/results?search_query=${encodeURIComponent(keyword)}`;
-                    break;
-                case 'insta':
-                    url = `https://www.instagram.com/explore/tags/${encodeURIComponent(keyword)}/`;
-                    break;
+                case 'blackkiwi': url = `https://blackkiwi.net/search?keyword=${encodeURIComponent(keyword)}`; break;
+                case 'naver': url = `https://search.naver.com/search.naver?query=${encodeURIComponent(keyword)}`; break;
+                case 'youtube': url = `https://www.youtube.com/results?search_query=${encodeURIComponent(keyword)}`; break;
+                case 'insta': url = `https://www.instagram.com/explore/tags/${encodeURIComponent(keyword)}/`; break;
             }
             if(url) window.open(url, '_blank');
         }
 
-        // 2. ROAS 계산기 기능
+        // 2. ROAS 계산기
         function calculateROAS() {
             const cost = parseFloat(document.getElementById('roasCost').value) || 0;
             const sales = parseFloat(document.getElementById('roasSales').value) || 0;
@@ -159,7 +168,7 @@
             }
         }
 
-        // 3. 목표 매출 계산기 기능
+        // 3. 목표 매출 계산기
         function calculateTargetSales() {
             const cost = parseFloat(document.getElementById('targetCost').value) || 0;
             const targetRoas = parseFloat(document.getElementById('targetRoas').value) || 0;
@@ -175,18 +184,17 @@
             }
         }
 
-        // 4. 다차원 보고서 파일 업로드 및 자동 시각화 로직
+        // 4. 파일 드롭존 연동 및 파싱 컨트롤
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const dropZoneContent = document.getElementById('dropZoneContent');
-        const chartContainer = document.getElementById('chartContainer');
+        const chartsWrapper = document.getElementById('chartsWrapper');
 
         dropZone.addEventListener('click', (e) => {
-            if (e.target.closest('#chartContainer')) return; // 차트 영역 클릭 시 파일창 뜨지 않게 방지
+            if (e.target.closest('#chartsWrapper')) return; // 차트 컨테이너 내부 클릭 시 파일창 팝업 방지
             fileInput.click();
         });
 
-        // 드래그앤드롭 이벤트
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-indigo-50/50'); });
         dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('bg-indigo-50/50'); });
         dropZone.addEventListener('drop', (e) => {
@@ -200,38 +208,33 @@
             if(e.target.files.length > 0) handleFile(e.target.files[0]);
         });
 
-        // 파일 처리 핵심 컨트롤러
         function handleFile(file) {
             const fileExtension = file.name.split('.').pop().toLowerCase();
             
             if (fileExtension === 'csv') {
                 Papa.parse(file, {
                     complete: function(results) { processData(results.data); },
-                    error: function() { alert('CSV 파일을 파싱하는 데 실패했습니다.'); }
+                    error: function() { alert('CSV 파싱에 실패했습니다.'); }
                 });
             } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1});
                     processData(jsonData);
                 };
                 reader.readAsArrayBuffer(file);
             } else {
-                alert('지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 올려주세요.');
+                alert('지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 업로드해 주세요.');
             }
         }
 
-        // 네이버 다차원 보고서 데이터 변환 및 분석 로직
+        // 네이버 다차원 데이터 처리 로직 확장 (노출, 클릭, 광고비, 매출액 기준 계산)
         function processData(rows) {
-            // 네이버 다차원 보고서는 보통 1~2행에 기간/계정 정보가 있고 3행(인덱스 2)부터 헤더가 시작되는 경우가 많음
             let startRowIdx = 0;
             
-            // 헤더(캠페인, 노출수, 클릭수 등) 위치 탐색
-            for(let i=0; i < Math.min(rows.length, 10); i++) {
+            for(let i=0; i < Math.min(rows.length, 12); i++) {
                 if(rows[i] && rows[i].some(cell => String(cell).includes('캠페인') || String(cell).includes('노출수'))) {
                     startRowIdx = i;
                     break;
@@ -242,53 +245,79 @@
             const campaignIdx = header.findIndex(cell => String(cell).includes('캠페인'));
             const impressionIdx = header.findIndex(cell => String(cell).includes('노출수'));
             const clickIdx = header.findIndex(cell => String(cell).includes('클릭수'));
+            
+            // 광고비 및 전환액(매출액) 탐색용 인덱스
+            const costIdx = header.findIndex(cell => String(cell).includes('광고비'));
+            const salesIdx = header.findIndex(cell => String(cell).includes('전환매출액') || String(cell).includes('총전환매출액') || String(cell).includes('매출액'));
+            const directRoasIdx = header.findIndex(cell => String(cell).toUpperCase().includes('ROAS'));
 
             if (campaignIdx === -1 || impressionIdx === -1 || clickIdx === -1) {
-                alert('네이버 다차원 보고서 형식이 아니거나 필수 열(캠페인, 노출수, 클릭수)을 찾을 수 없습니다.');
+                alert('필수 열(캠페인, 노출수, 클릭수)을 다차원 보고서에서 찾을 수 없습니다.');
                 return;
             }
 
-            // 캠페인별 데이터 합산 가공
             const summary = {};
             for(let i = startRowIdx + 1; i < rows.length; i++) {
                 const row = rows[i];
                 if(!row || !row[campaignIdx]) continue;
 
                 const campaignName = String(row[campaignIdx]).trim();
-                if(campaignName === '합계' || campaignName === '총합') continue; // 하단 합계 라인 제외
+                if(campaignName === '합계' || campaignName === '총합' || campaignName.includes('행 데이터')) continue;
 
                 const imps = parseInt(String(row[impressionIdx]).replace(/,/g, '')) || 0;
                 const clicks = parseInt(String(row[clickIdx]).replace(/,/g, '')) || 0;
+                const cost = parseFloat(String(row[costIdx] || 0).replace(/,/g, '')) || 0;
+                const sales = parseFloat(String(row[salesIdx] || 0).replace(/,/g, '')) || 0;
+                const rawRoas = directRoasIdx !== -1 ? parseFloat(String(row[directRoasIdx] || 0).replace(/,/g, '')) : 0;
 
                 if(!summary[campaignName]) {
-                    summary[campaignName] = { imps: 0, clicks: 0 };
+                    summary[campaignName] = { imps: 0, clicks: 0, cost: 0, sales: 0, rawRoas: 0, count: 0 };
                 }
                 summary[campaignName].imps += imps;
                 summary[campaignName].clicks += clicks;
+                summary[campaignName].cost += cost;
+                summary[campaignName].sales += sales;
+                if(rawRoas > 0) {
+                    summary[campaignName].rawRoas += rawRoas;
+                    summary[campaignName].count++;
+                }
             }
 
             const labels = Object.keys(summary);
             const impsData = labels.map(k => summary[k].imps);
             const clicksData = labels.map(k => summary[k].clicks);
+            
+            // 캠페인별 정확한 최종 ROAS 산출 로직
+            const roasData = labels.map(k => {
+                const item = summary[k];
+                if (item.cost > 0) {
+                    return Math.round((item.sales / item.cost) * 100);
+                } else if (item.count > 0) {
+                    return Math.round(item.rawRoas / item.count); // 보고서 자체 ROAS가 있을 시 평균 계산
+                }
+                return 0;
+            });
 
             if(labels.length === 0) {
-                alert('시각화할 수 있는 유효한 데이터 행이 없습니다.');
+                alert('가공할 수 있는 데이터 라인이 없습니다.');
                 return;
             }
 
-            // UI 스위칭 및 차트 렌더링
+            // UI 보이기 스위칭
             dropZoneContent.classList.add('hidden');
-            chartContainer.classList.remove('hidden');
-            renderChart(labels, impsData, clicksData);
+            chartsWrapper.classList.remove('hidden');
+            
+            // 양측 차트 독립 렌더링 진행
+            renderPerformanceChart(labels, impsData, clicksData);
+            renderRoasChart(labels, roasData);
         }
 
-        // Chart.js 그래프 그리기
-        function renderChart(labels, imps, clicks) {
-            const ctx = document.getElementById('mktChart').getContext('2d');
-            
-            if(myChart) myChart.destroy(); // 기존 차트가 있다면 초기화
+        // 차트 1: 노출수 & 클릭수 결합 그래프
+        function renderPerformanceChart(labels, imps, clicks) {
+            const ctx = document.getElementById('mktPerformanceChart').getContext('2d');
+            if(performanceChart) performanceChart.destroy();
 
-            myChart = new Chart(ctx, {
+            performanceChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -297,9 +326,9 @@
                             label: '클릭수 (우축)',
                             data: clicks,
                             backgroundColor: '#ef4444',
+                            borderColor: '#ef4444',
                             yAxisID: 'yClicks',
                             type: 'line',
-                            borderColor: '#ef4444',
                             borderWidth: 2,
                             tension: 0.2
                         },
@@ -308,7 +337,7 @@
                             data: imps,
                             backgroundColor: '#4f46e5',
                             yAxisID: 'yImps',
-                            borderRadius: 6
+                            borderRadius: 4
                         }
                     ]
                 },
@@ -316,39 +345,72 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        yImps: {
+                        yImps: { type: 'linear', position: 'left', title: { display: true, text: '노출수', font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+                        yClicks: { type: 'linear', position: 'right', title: { display: true, text: '클릭수', font: { size: 10 } }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: { legend: { labels: { font: { size: 11, family: 'Noto Sans KR' } } } }
+                }
+            });
+        }
+
+        // 차트 2: ROAS 전용 라인/바 혼합 그래프
+        function renderRoasChart(labels, roasValues) {
+            const ctx = document.getElementById('mktRoasChart').getContext('2d');
+            if(roasChart) roasChart.destroy();
+
+            roasChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '캠페인별 ROAS (%)',
+                        data: roasValues,
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        borderRadius: 4,
+                        type: 'bar',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
                             type: 'linear',
-                            position: 'left',
-                            title: { display: true, text: '노출수', font: { size: 11 } },
+                            beginAtZero: true,
+                            title: { display: true, text: 'ROAS (%)', font: { size: 10 } },
                             grid: { color: '#f1f5f9' }
-                        },
-                        yClicks: {
-                            type: 'linear',
-                            position: 'right',
-                            title: { display: true, text: '클릭수', font: { size: 11 } },
-                            grid: { drawOnChartArea: false }
                         }
                     },
                     plugins: {
-                        legend: { position: 'top', labels: { font: { size: 11, family: 'Noto Sans KR' } } }
+                        legend: { labels: { font: { size: 11, family: 'Noto Sans KR' } } },
+                        tooltip: { callbacks: { label: function(context) { return context.raw + '%'; } } }
                     }
                 }
             });
         }
 
-        // 차트 PNG 다운로드 기능
-        function downloadChartPng() {
-            if(!myChart) {
-                alert('시각화된 데이터 그래프가 없습니다. 먼저 보고서 파일을 업로드해 주세요!');
+        // 이미지(PNG) 저장 기능 연동
+        function downloadAllCharts() {
+            if(!performanceChart || !roasChart) {
+                alert('시각화된 차트 리포트가 비어있습니다. 다차원 엑셀 파일을 먼저 올려주세요!');
                 return;
             }
-            const imageURI = myChart.toBase64Image();
-            const link = document.createElement('a');
-            link.download = '캠페인별_다차원_보고서_그래프.png';
-            link.href = imageURI;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // 첫 번째 퍼포먼스 차트 자동 다운로드
+            const link1 = document.createElement('a');
+            link1.download = '캠페인별_기본성과_그래프.png';
+            link1.href = performanceChart.toBase64Image();
+            link1.click();
+
+            // 조금의 텀을 두고 ROAS 차트 연달아 다운로드
+            setTimeout(() => {
+                const link2 = document.createElement('a');
+                link2.download = '캠페인별_ROAS_분석_그래프.png';
+                link2.href = roasChart.toBase64Image();
+                link2.click();
+            }, 300);
         }
     </script>
 </body>
