@@ -1,21 +1,63 @@
-역할: 너는 전 세계 패키지 배포 및 프론트엔드 개발에 정통한 시니어 풀스택 개발자이자 UX/UI 디자이너야. 
-목표: 마케터를 위한 웹 애플리케이션인 '마케팅 인사이트 툴(Mkt Insight Tool)'을 HTML, CSS(Tailwind CSS), JavaScript(Vanilla JS) 단일 파일 또는 간단한 구조로 개발해줘. 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WORK LESS, EARN MORE - Performance Marketing Workspace</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', 'Inter', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="p-6 md:p-12 max-w-4xl mx-auto">
 
-[앱 개요 및 콘셉트]
-- 이 앱은 마케터가 시장 데이터나 광고 성과, 경쟁사 동향 등을 입력하면 직관적인 대시보드와 인사이트를 제공하는 툴이다.
-- 복잡한 서버(Backend) 없이, 브라우저 로컬 환경(LocalStorage)이나 오픈 API를 활용하여 전면 프론트엔드 단에서 구동되도록 짜줘.
-- 디자인은 Modern, Clean, Professional 감성의 다크 모드/라이트 모드를 지원하는 대시보드 스타일이어야 해. (Tailwind CSS 활용)
+    <header class="mb-10 text-center md:text-left">
+        <h1 class="text-3xl md:text-4xl font-black italic text-slate-800 tracking-tight">WORK LESS, EARN MORE</h1>
+        <p class="text-xs md:text-sm font-bold text-indigo-600 tracking-wider uppercase mt-1">Performance Marketing Workspace</p>
+    </header>
 
-[핵심 기능 요구사항]
-1. 대시보드 메인 화면: 주요 KPI 카드 3~4개 (예: CTR, ROAS, 전환수, 경쟁사 변동 지표 등 가상 데이터 반영), 트렌드를 볼 수 있는 깔끔한 차트 영역 (Chart.js 라이브러리 CDN 포함할 것).
-2. 데이터 입력/업로드 섹션: 마케터가 직접 텍스트나 CSV 형식의 데이터를 붙여넣거나 입력할 수 있는 폼(Form).
-3. 인사이트 자동 생성기: 입력된 데이터를 기반으로 조건문(또는 가상 로직)에 따라 "현재 광고 효율이 좋습니다", "경쟁사 배너 변동이 감지되었습니다" 같은 마케팅 액션 아이템을 텍스트로 깔끔하게 정리해 주는 화면.
-4. 히스토리 저장: 입력하거나 분석한 기록이 브라우저를 새로고침해도 유지되도록 LocalStorage를 활용해줘.
+    <main class="space-y-6">
+        
+        <section class="bg-white p-6 rounded-2xl shadow-xs border border-slate-100">
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2 mb-4">
+                <i data-lucide="search" class="w-5 h-5 text-indigo-500"></i> 실시간 트렌드 체크
+            </h2>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input type="text" id="trendKeyword" placeholder="분석할 키워드 입력" class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+                <div class="flex flex-wrap gap-2 items-center">
+                    <button onclick="searchTrend('blackkiwi')" class="px-3 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer hover:bg-amber-100">🥝 블랙키위</button>
+                    <button onclick="searchTrend('naver')" class="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer hover:bg-emerald-100">💚 네이버</button>
+                    <button onclick="searchTrend('youtube')" class="px-3 py-2 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer hover:bg-rose-100">🔴 유튜브</button>
+                    <button onclick="searchTrend('insta')" class="px-3 py-2 bg-pink-50 text-pink-700 border border-pink-200 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer hover:bg-pink-100">📸 인스타</button>
+                </div>
+            </div>
+        </section>
 
-[기술 스택 및 제약사항]
-- 외부 프레임워크(React, Vue 등)를 쓰지 않고, 깃허브 페이지스(GitHub Pages)에 파일 하나만 올려도 바로 작동할 수 있게 'index.html' 단일 파일 구조(Single File Component 스타일)로 작성해줘.
-- CSS는 Tailwind CSS CDN을 `<head>`에 포함해서 스타일링해줘.
-- 아이콘은 Lucide Icons 또는 FontAwesome CDN을 사용해줘.
-- 차트는 Chart.js CDN을 사용해줘.
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section class="bg-white p-6 rounded-2xl shadow-xs border border-slate-100 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2 mb-4 italic">
+                        <i data-lucide="calculator" class="w-5 h-5 text-red-500"></i> ROAS 계산기
+                    </h2>
+                    <div class="grid grid-cols-2 gap-3 text-xs text-slate-500 mb-2">
+                        <div>광고비</div>
+                        <div>매출액</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <input type="number" id="roasCost" oninput="calculateROAS()" placeholder="0" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-red-400">
+                        <input type="number" id="roasSales" oninput="calculateROAS()" placeholder="0" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-red-400">
+                    </div>
+                </div>
+                <div class="text-right mt-2">
+                    <span id="roasResult" class="text-4xl font-black text-slate-300 italic">0%</span>
+                </div>
+            </section>
 
-코드를 작성할 때 생략(// 기존 코드 동일 등)하지 말고, 바로 복사해서 쓸 수 있는 완벽한 전체 HTML 코드를 출력해줘. 완성도 높은 UI/UX를 보여줘.
+            <section class="bg-white p-6 rounded-2xl shadow-xs border border-slate-100 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2 mb-4 italic">
+                        <i data-lucide="target" class="w-5 h-5 text-emerald-500"></i> 목표 매출 계산기
+                    </h2>
+                    <div class
